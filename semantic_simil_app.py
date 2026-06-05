@@ -1,105 +1,145 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[8]:
-
-#loading all needed libraries 
 import streamlit as st
-import pickle
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from PIL import Image
-from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import MinMaxScaler
-scaler = MinMaxScaler()
-# Fit the scaler with the data range you want to scale
-similarity_range = (0, 1)  # Range of similarity scores
-scaler.fit(np.reshape(similarity_range, (2, 1)))  # Fit the scaler with the specified range
-
 import string
 import re
-import nltk
-nltk.download('stopwords')#downloading nltk stopwords
-stopwords = nltk.corpus.stopwords.words('english')#assigning to variable english stopwords
-from nltk.stem import WordNetLemmatizer
-wordnet_lemmatizer = WordNetLemmatizer()#object of wordlemmatizer created
-nltk.download('wordnet')#wordnet database is download 
-nltk.download('omw-1.4')#Open Multilingual Wordnet database is loaded
-import spacy
-nlp = spacy.load('en_core_web_sm')#spacy model en_core_web_sm js loaded
-stopwords1 = nlp.Defaults.stop_words#model stopwords are assigned to variable
 
-#Function creation
+scaler = MinMaxScaler()
+scaler.fit(np.reshape((0, 1), (2, 1)))
+
+try:
+    import nltk
+    nltk.download('stopwords', quiet=True)
+    nltk.download('wordnet', quiet=True)
+    nltk.download('omw-1.4', quiet=True)
+    from nltk.stem import WordNetLemmatizer
+    stopwords = nltk.corpus.stopwords.words('english')
+    wordnet_lemmatizer = WordNetLemmatizer()
+except Exception as e:
+    st.error(f"Failed to load NLTK resources: {e}")
+    stopwords = []
+    wordnet_lemmatizer = None
+
+try:
+    import spacy
+    nlp = spacy.load('en_core_web_sm')
+    stopwords1 = nlp.Defaults.stop_words
+except OSError:
+    st.error("spaCy model not found. Run: python -m spacy download en_core_web_sm")
+    nlp = None
+    stopwords1 = set()
+except Exception as e:
+    st.error(f"Failed to load spaCy: {e}")
+    nlp = None
+    stopwords1 = set()
+
+
 def clean_text(text):
-    if isinstance(text, str):# isinstance(object, classinfo),checking if string as input
-        text = text.lower()#convert to lowercase
-        text="".join([i for i in text if i not in string.punctuation])#punctuations are removed and remaining are joined
-        text = re.sub('\S*\d\S*\s*','', text).strip()#pattern like words with digits are removed
-    return text
+    try:
+        if isinstance(text, str):
+            text = text.lower()
+            text = "".join([i for i in text if i not in string.punctuation])
+            text = re.sub(r'\S*\d\S*\s*', '', text).strip()
+        return text
+    except Exception as e:
+        raise ValueError(f"Error in clean_text: {e}") from e
+
+
 def nltk_tokenization(text):
-    if isinstance(text, str):
-        tokens = re.split('\W+', text)#tokenisation
-        tokens = [wordnet_lemmatizer.lemmatize(token) for token in tokens if token.lower() not in stopwords]
-        output = " ".join(tokens)#lemmatized words not in stopwords(nltk) and joined to return 
-        return output#return to if loop
-    return text#return to function
+    try:
+        if isinstance(text, str):
+            if wordnet_lemmatizer is None:
+                raise RuntimeError("WordNetLemmatizer not initialized.")
+            tokens = re.split(r'\W+', text)
+            tokens = [wordnet_lemmatizer.lemmatize(t) for t in tokens if t.lower() not in stopwords]
+            return " ".join(tokens)
+        return text
+    except Exception as e:
+        raise ValueError(f"Error in nltk_tokenization: {e}") from e
+
+
 def spacy_lemmatizer(text):
-    if isinstance(text, str):
-        doc = nlp(text)#inputvtext loaded as spacy document 
-        sent = [token.lemma_ for token in doc if not token.text in set(stopwords1)]
-        return ' '.join(sent)#lemmatization and stopword removal using spacy Library
-    return text
+    try:
+        if isinstance(text, str):
+            if nlp is None:
+                raise RuntimeError("spaCy model not loaded.")
+            doc = nlp(text)
+            sent = [token.lemma_ for token in doc if token.text not in stopwords1]
+            return ' '.join(sent)
+        return text
+    except Exception as e:
+        raise ValueError(f"Error in spacy_lemmatizer: {e}") from e
 
 
-# Load the pre-trained model from sentence_transformer Library
-#Cache function is created so that model is loaded only once and we can avoid model loading traffic and hence preserve memory 
-@st.cache(allow_output_mutation=True)
+@st.cache_resource
 def load_model():
-	  return SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
+    from sentence_transformers import SentenceTransformer
+    return SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
 
-model = load_model()
 
-# Streamlit app code
-st.title("Semantic Similarity Analysis App")#title
-st.markdown("By Shilpa Ajith")#markdown
-image = Image.open("semantic_similarity.png")#image loaded
-st.image(image, use_column_width=True)
+st.title("Semantic Similarity Analysis App")
+st.markdown("By Shilpa Ajith")
 
-#2 user inputs are taken
+try:
+    from PIL import Image
+    image = Image.open("semantic_similarity.png")
+    st.image(image, use_column_width=True)
+except FileNotFoundError:
+    st.warning("Header image 'semantic_similarity.png' not found.")
+except Exception as e:
+    st.warning(f"Could not load image: {e}")
+
+try:
+    model = load_model()
+except Exception as e:
+    st.error(f"Failed to load sentence transformer model: {e}")
+    model = None
+
 st.subheader("Enter your text1 here:")
-user_input1 = st.text_area("Input1",placeholder="please enter a text")#placeholder and label added
+user_input1 = st.text_area("Input1", placeholder="Enter the first paragraph or sentence here...")
+# user_input1 = st.text_area("Input1", placeholder="e.g. Deep learning models achieve superior performance on image classification tasks by learning hierarchical feature representations.")
 st.subheader("Enter your text2 here:")
-user_input2 = st.text_area("Input2",placeholder="please enter another text")
+user_input2 = st.text_area("Input2", placeholder="Enter the second paragraph or sentence here...")
+# user_input2 = st.text_area("Input2", placeholder="e.g. Neural networks with multiple layers outperform traditional methods in visual recognition by automatically extracting abstract features.")
 
-#pedict button is created
 if st.button("Predict"):
-    if user_input1 and user_input2:  # Check if both inputs are provided
-        # Preprocess the input text
-        
-        user_input1 = clean_text(user_input1)
-        user_input2 = clean_text(user_input2)
-        user_input1 = nltk_tokenization(user_input1)
-        user_input2 = nltk_tokenization(user_input2)
-        user_input1 = spacy_lemmatizer(user_input1)
-        user_input2 = spacy_lemmatizer(user_input2)
-	
-        #user input is encoded,dense vector of each sentence is created
-        sentence_vec1 = model.encode([user_input1])[0]
-        sentence_vec2 = model.encode([user_input2])[0]
+    if user_input1 and user_input2:
+        try:
+            if model is None:
+                st.error("Model is not loaded. Cannot compute similarity.")
+            else:
+                p1 = clean_text(user_input1)
+                p2 = clean_text(user_input2)
+                p1 = nltk_tokenization(p1)
+                p2 = nltk_tokenization(p2)
+                p1 = spacy_lemmatizer(p1)
+                p2 = spacy_lemmatizer(p2)
 
-        # Make predictions
-        similarity = cosine_similarity([sentence_vec1], [sentence_vec2])[0][0]#cosine similarity is calculated 
-        scaled_similarity = scaler.transform(np.reshape(similarity, (1, 1)))[0][0]#normalisation
-        st.header("Prediction:")
-        st.subheader(similarity)
+                if not p1.strip() or not p2.strip():
+                    st.warning("Text became empty after preprocessing. Please try different input.")
+                else:
+                    sentence_vec1 = model.encode([p1])[0]
+                    sentence_vec2 = model.encode([p2])[0]
+
+                    similarity = cosine_similarity([sentence_vec1], [sentence_vec2])[0][0]
+                    scaled_similarity = scaler.transform(np.reshape(similarity, (1, 1)))[0][0]
+
+                    # st.header("Prediction:")
+                    # st.subheader(f"{similarity:.4f}")
+                    st.metric(label="Cosine Similarity Score", value=f"{similarity:.4f}")
+                    # st.progress(float(similarity))
+
+        except ValueError as e:
+            st.error(f"Preprocessing error: {e}")
+        except RuntimeError as e:
+            st.error(f"Model or resource error: {e}")
+        except Exception as e:
+            st.error(f"An unexpected error occurred: {e}")
     else:
-        st.subheader("Please enter both sentences.")#if both inputs are not there
+        st.warning("Both text fields must be filled before predicting.")
 else:
-    st.subheader("Please enter sentences.")#if Prediction buttin is not pressed 
-
-
-# In[ ]:
-
-
-
-
+    st.info("Enter both sentences above and click **Predict** to get the similarity score.")
