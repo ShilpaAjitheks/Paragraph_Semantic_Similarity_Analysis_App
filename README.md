@@ -2,26 +2,45 @@
 # [Paragraph_Semantic_Similarity_Analysis_App](https://paragraphsemanticsimilarityanalysisapp-6v59zwnbnfenxsgmahygf7.streamlit.app/)
 ![preview img](/semanticapp.png)
 
-<h3>CONTEXT:</h3>
-Paragraph_Semantic_Similarity_Analysis_App can quantify the degree of similarity between the two text-based on Semantic similarity. Semantic Textual Similarity (STS) assesses the degree to which two sentences are semantically equivalent to each other. Applications that leverage semantic similarity can have a wide range of uses across various fields like Information Retrieval and Search Engines,Text Classification and Sentiment Analysis,Recommendation Systems,Plagiarism Detection etc
+This application quantifies text similarity using semantic analysis. The tool measures how closely two paragraphs align in meaning, producing a similarity score between 0 and 1.
 
-<h3>AIM:</h3>
-Aim is to predict a value between 0-1 indicating the similarity between the pair of text paras.
+## Key Features
+- Real-time semantic similarity scoring between two text inputs
+- NLP preprocessing pipeline including tokenization, lemmatization, and stopword removal
+- Sentence embedding using a pretrained transformer model (`all-mpnet-base-v2`)
+- Cosine similarity calculation with MinMax scaling
+- Graceful error handling via try-except for missing dependencies, empty inputs, and preprocessing failures
 
-1. To preprocess and clean the dataset.
-2. To explore and visualize the dataset.
-3. To embed the whole sentence using a pretrained sentence-transformer model.
-4. To calculate the angular distance using cosinesimilarity
-5. To evaluate the performance of the model.
-6. To Create an app using streamlit library   .
-7. To make use of streamlit API and deploy the model and make predictions on new data.
+## Primary Applications
+Semantic Textual Similarity (STS) assesses the degree to which two sentences are semantically equivalent, with use cases spanning:
+- Information retrieval
+- Text classification
+- Recommendation systems
+- Plagiarism detection
 
-<h3>SOURCE OF THE DATASET USED:</h3>
-The data contains a pair of paragraphs. These text paragraphs are randomly sampled from a raw dataset. Each pair of sentences may or may not be semantically similar.This data is provided by an inc as a part of assessment test
+## Technical Implementation
+The solution utilizes Streamlit for deployment, allowing users to input text pairs and receive real-time similarity predictions. The codebase consists of:
+- `semantic_simil_app.py` — main application file with full try-except error handling
+- `requirements.txt` — all Python dependencies
+- `runtime.txt` — pins Python version to 3.11 for reliable deployment
+- A Jupyter notebook for exploratory analysis and visualization
 
+## Requirements
+- Python 3.11 (see `runtime.txt`) — spaCy and thinc do not support Python 3.13+
+- Dependencies listed in `requirements.txt`
 
-<h2>Guideline to Access Project</h2>
-
-Go for the semantic_simil_app.py file.There is all you needed.For visualisation things go to Semantic_simil.ipynb
-
-
+## How to Run Locally
+1. Clone the repository
+   ```bash
+   git clone https://github.com/ShilpaAjitheks/Paragraph_Semantic_Similarity_Analysis_App.git
+   cd Paragraph_Semantic_Similarity_Analysis_App```
+2. Create a virtual environment with Python 3.11
+   ```python -m venv env
+    env\Scripts\activate        # Windows
+    source env/bin/activate     # Mac/Linux```
+3. Install dependencies
+    ```pip install -r requirements.txt
+    python -m spacy download en_core_web_sm ```
+4. Run the app
+   ```streamlit run semantic_simil_app.py```
+   
